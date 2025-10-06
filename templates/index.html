@@ -1,0 +1,112 @@
+{% extends 'layout.html' %}
+
+{% block title %}デッキ一覧{% endblock %}
+
+{% block content %}
+<h1>デッキ一覧</h1>
+
+<div class="container">
+    <h2>新しいデッキを作成</h2>
+    <form action="{{ url_for('add_deck') }}" method="post">
+        <div class="form-group">
+            <label>デッキ名:</label>
+            <input type="text" name="deck_name" required>
+        </div>
+        <hr>
+        <div class="form-group">
+            <label>インナースリーブ:</label>
+            <select name="inner_sleeve_id">
+                <option value="">なし</option>
+                {% for sleeve in inner_sleeves_list %}
+                <option value="{{ sleeve.id }}">{{ sleeve.sleeve_name }} (残り: {{ sleeve.remaining_count }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>使用枚数:</label>
+            <input type="number" name="inner_sleeve_count" value="0" min="0">
+        </div>
+        <hr>
+        <div class="form-group">
+            <label>オーバースリーブ:</label>
+            <select name="over_sleeve_id">
+                <option value="">なし</option>
+                {% for sleeve in over_sleeves_list %}
+                <option value="{{ sleeve.id }}">{{ sleeve.sleeve_name }} (残り: {{ sleeve.remaining_count }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>使用枚数:</label>
+            <input type="number" name="over_sleeve_count" value="0" min="0">
+        </div>
+        
+        <button type="submit">作成</button>
+    </form>
+</div>
+
+<div class="container">
+    <h2>デッキリスト</h2>
+
+    <form method="get" action="{{ url_for('index') }}" class="filter-form">
+        <div class="form-group">
+            <label>インナースリーブ:</label>
+            <select name="inner_filter">
+                <option value="">すべて</option>
+                {% for sleeve in all_sleeves %}
+                <option value="{{ sleeve.id }}" {% if filters.inner == sleeve.id|string %}selected{% endif %}>{{ sleeve.sleeve_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>オーバースリーブ:</label>
+            <select name="over_filter">
+                <option value="">すべて</option>
+                {% for sleeve in all_sleeves %}
+                <option value="{{ sleeve.id }}" {% if filters.over == sleeve.id|string %}selected{% endif %}>{{ sleeve.sleeve_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit">絞り込み</button>
+        <a href="{{ url_for('index') }}">リセット</a>
+    </form>
+    <table>
+        <thead>
+            <tr>
+                <th>デッキ名</th>
+                <th>インナースリーブ (使用枚数)</th>
+                <th>オーバースリーブ (使用枚数)</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for deck in decks %}
+            <tr>
+                <td>{{ deck.deck_name }}</td>
+                <td>
+                    {% if deck.inner_sleeve_name %}
+                        <img src="{{ url_for('uploaded_file', filename=deck.inner_sleeve_image) if deck.inner_sleeve_image else '' }}" class="sleeve-img">
+                        {{ deck.inner_sleeve_name }} ({{ deck.inner_sleeve_count }})
+                    {% else %}
+                        未設定
+                    {% endif %}
+                </td>
+                <td>
+                    {% if deck.over_sleeve_name %}
+                        <img src="{{ url_for('uploaded_file', filename=deck.over_sleeve_image) if deck.over_sleeve_image else '' }}" class="sleeve-img">
+                        {{ deck.over_sleeve_name }} ({{ deck.over_sleeve_count }})
+                    {% else %}
+                        未設定
+                    {% endif %}
+                </td>
+                <td>
+                    <form action="{{ url_for('delete_deck', id=deck.id) }}" method="post">
+                        <button type="submit" class="delete-btn">削除</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
