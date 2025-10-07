@@ -268,3 +268,11 @@ def delete_sleeve():
         db.rollback()
         flash(f"エラーが発生しました: {e}")
     return redirect(url_for('inventory'))
+
+@app.route('/create-database-for-my-app-12345xyz')
+def create_db_route():
+    try:
+        init_db()
+        return "データベースの初期化が完了しました。"
+    except Exception as e:
+        return f"エラーが発生しました: {e}"
