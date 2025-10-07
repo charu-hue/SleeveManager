@@ -26,6 +26,9 @@
             <input type="text" name="manufacturer">
         </div>
         <div class="form-group">
+            <label>封入枚数/パック:</label> <input type="number" name="pack_count" value="0" min="0">
+        </div>
+        <div class="form-group">
             <label>初期枚数:</label>
             <input type="number" name="remaining_count" required>
         </div>
@@ -51,7 +54,7 @@
             <tr>
                 <th>画像</th>
                 <th>スリーブ名</th>
-                <th>種類</th> <th>メーカー名</th>
+                <th>種類</th>
                 <th>残り枚数</th>
                 <th>操作</th>
             </tr>
@@ -66,16 +69,18 @@
                         No Image
                     {% endif %}
                 </td>
-                <form action="{{ url_for('update_sleeve', id=sleeve.id) }}" method="post" style="display: contents;">
-                    <td>{{ sleeve.sleeve_name }}</td>
-                    <td>{{ sleeve.sleeve_type }}</td> <td>{{ sleeve.manufacturer }}</td>
-                    <td><input type="number" name="remaining_count" value="{{ sleeve.remaining_count }}"></td>
-                    <td>
-                        <button type="submit">更新</button>
-                </form>
-                <form action="{{ url_for('delete_sleeve', id=sleeve.id) }}" method="post" style="display: inline-block; margin-left: 5px;">
+                <td>
+                    <a href="{{ url_for('edit_sleeve', id=sleeve.id) }}">{{ sleeve.sleeve_name }}</a>
+                </td>
+                <td>{{ sleeve.sleeve_type }}</td>
+                <td>{{ sleeve.remaining_count }}</td>
+                <td>
+                    <form action="{{ url_for('add_pack', id=sleeve.id) }}" method="post" style="display: inline-block;">
+                        <button type="submit">+1パック ({{ sleeve.pack_count }})</button>
+                    </form>
+                    <form action="{{ url_for('delete_sleeve', id=sleeve.id) }}" method="post" style="display: inline-block; margin-left: 5px;">
                         <button type="submit" class="delete-btn">削除</button>
-                </form>
+                    </form>
                 </td>
             </tr>
             {% endfor %}
