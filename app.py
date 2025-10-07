@@ -31,7 +31,6 @@ def close_db(e=None):
 def init_db():
     db = get_db()
     db.execute('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, username TEXT UNIQUE NOT NULL, password TEXT NOT NULL)')
-    # sleevesテーブルにpack_count列を追加
     db.execute('''
     CREATE TABLE IF NOT EXISTS sleeves (
         id INTEGER PRIMARY KEY, sleeve_name TEXT NOT NULL, 
@@ -56,7 +55,7 @@ def init_db_command():
     init_db()
     click.echo('データベースを初期化しました。')
 
-# --- 認証（変更なし） ---
+# --- 認証 ---
 @app.before_request
 def load_logged_in_user():
     user_id = session.get('user_id')
@@ -71,7 +70,6 @@ def login_required(view):
 
 @app.route('/register', methods=('GET', 'POST'))
 def register():
-    # 省略（コードは前回のものと同じ）
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -87,9 +85,9 @@ def register():
         flash(error)
     return render_template('register.html')
 
+
 @app.route('/login', methods=('GET', 'POST'))
 def login():
-    # 省略（コードは前回のものと同じ）
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -110,7 +108,7 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
-# --- 画像アップロード（変更なし） ---
+# --- 画像アップロード ---
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
@@ -118,7 +116,7 @@ def allowed_file(filename):
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-# --- デッキ管理機能（変更なし） ---
+# --- デッキ管理機能 ---
 @app.route('/')
 @login_required
 def index():
@@ -144,7 +142,6 @@ def index():
 @app.route('/deck/add', methods=['POST'])
 @login_required
 def add_deck():
-    # 省略（コードは前回のものと同じ）
     db = get_db()
     try:
         deck_name = request.form['deck_name']
@@ -163,8 +160,7 @@ def add_deck():
 
 @app.route('/deck/delete/<int:id>', methods=['POST'])
 @login_required
-def delete_deck():
-    # 省略（コードは前回のものと同じ）
+def delete_deck(id):
     db = get_db()
     try:
         deck = db.execute('SELECT * FROM decks WHERE id = ? AND user_id = ?', (id, g.user['id'])).fetchone()
@@ -213,13 +209,11 @@ def add_sleeve():
     db.commit()
     return redirect(url_for('inventory'))
 
-# ▼▼▼ 新しい関数を追加 ▼▼▼
 @app.route('/sleeve/edit/<int:id>', methods=('GET', 'POST'))
 @login_required
 def edit_sleeve(id):
     db = get_db()
     sleeve = db.execute('SELECT * FROM sleeves WHERE id = ? AND user_id = ?', (id, g.user['id'])).fetchone()
-
     if request.method == 'POST':
         sleeve_name = request.form['sleeve_name']
         sleeve_type = request.form['sleeve_type']
@@ -227,23 +221,18 @@ def edit_sleeve(id):
         pack_count = request.form.get('pack_count', 0)
         remaining_count = request.form['remaining_count']
         image_file = request.files.get('sleeve_image')
-
-        # 画像が新しくアップロードされたらファイル名を更新、なければ元のファイル名を維持
         image_filename = sleeve['image_filename']
         if image_file and allowed_file(image_file.filename):
             image_filename = secure_filename(image_file.filename)
             image_file.save(os.path.join(app.config['UPLOAD_FOLDER'], image_filename))
-        
         db.execute(
             'UPDATE sleeves SET sleeve_name = ?, sleeve_type = ?, manufacturer = ?, pack_count = ?, remaining_count = ?, image_filename = ? WHERE id = ?',
             (sleeve_name, sleeve_type, manufacturer, pack_count, remaining_count, image_filename, id)
         )
         db.commit()
         return redirect(url_for('inventory'))
-
     return render_template('edit_sleeve.html', sleeve=sleeve)
 
-# ▼▼▼ 新しい関数を追加 ▼▼▼
 @app.route('/sleeve/add_pack/<int:id>', methods=['POST'])
 @login_required
 def add_pack(id):
@@ -254,14 +243,16 @@ def add_pack(id):
         db.commit()
     return redirect(url_for('inventory'))
 
+# ▼▼▼ ここの関数定義を修正しました ▼▼▼
 @app.route('/sleeve/delete/<int:id>', methods=['POST'])
 @login_required
-def delete_sleeve():
-    # 省略（コードは前回のものと同じ）
+def delete_sleeve(id): # ← (id) を追加
     db = get_db()
     try:
+        # 削除前に、このスリーブを使用しているデッキの関連付けを解除する
         db.execute('UPDATE decks SET inner_sleeve_id = NULL WHERE inner_sleeve_id = ? AND user_id = ?', (id, g.user['id']))
         db.execute('UPDATE decks SET over_sleeve_id = NULL WHERE over_sleeve_id = ? AND user_id = ?', (id, g.user['id']))
+        
         db.execute('DELETE FROM sleeves WHERE id = ? AND user_id = ?', (id, g.user['id']))
         db.commit()
     except Exception as e:
@@ -269,6 +260,7 @@ def delete_sleeve():
         flash(f"エラーが発生しました: {e}")
     return redirect(url_for('inventory'))
 
+# ▼▼▼ データベース初期化用の秘密のルート（変更なし） ▼▼▼
 @app.route('/create-database-for-my-app-12345xyz')
 def create_db_route():
     try:
