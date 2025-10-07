@@ -1,48 +1,48 @@
 {% extends 'layout.html' %}
-
 {% block title %}スリーブ情報編集{% endblock %}
-
 {% block content %}
-<h1>スリーブ情報編集</h1>
-
-<div class="container">
-    <form method="post" enctype="multipart/form-data">
-        <div class="form-group">
-            <label>スリーブ名:</label>
-            <input type="text" name="sleeve_name" value="{{ sleeve.sleeve_name }}" required>
-        </div>
-        <div class="form-group">
-            <label>スリーブの種類:</label>
-            <select name="sleeve_type" required>
-                <option value="インナー" {% if sleeve.sleeve_type == 'インナー' %}selected{% endif %}>インナースリーブ</option>
-                <option value="オーバー" {% if sleeve.sleeve_type == 'オーバー' %}selected{% endif %}>オーバースリーブ</option>
-                <option value="キャラクター" {% if sleeve.sleeve_type == 'キャラクター' %}selected{% endif %}>キャラクタースリーブ</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>メーカー名:</label>
-            <input type="text" name="manufacturer" value="{{ sleeve.manufacturer }}">
-        </div>
-        <div class="form-group">
-            <label>封入枚数/パック:</label>
-            <input type="number" name="pack_count" value="{{ sleeve.pack_count }}">
-        </div>
-        <div class="form-group">
-            <label>現在の残り枚数:</label>
-            <input type="number" name="remaining_count" value="{{ sleeve.remaining_count }}">
-        </div>
-        <div class="form-group">
-            <label>画像:</label>
-            <input type="file" name="sleeve_image" accept="image/*">
-        </div>
-        {% if sleeve.image_filename %}
-        <div class="form-group">
-            <label>現在の画像:</label>
-            <img src="{{ url_for('uploaded_file', filename=sleeve.image_filename) }}" class="sleeve-img">
-        </div>
-        {% endif %}
-        <button type="submit">更新する</button>
-        <a href="{{ url_for('inventory') }}" style="margin-left: 10px;">キャンセル</a>
-    </form>
+<h1 class="mb-4">スリーブ情報編集</h1>
+<div class="card">
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">スリーブ名</label>
+                    <input type="text" name="sleeve_name" class="form-control" value="{{ sleeve.sleeve_name }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">スリーブの種類</label>
+                    <select name="sleeve_type" class="form-select" required>
+                        <option value="インナー" {% if sleeve.sleeve_type == 'インナー' %}selected{% endif %}>インナースリーブ</option>
+                        <option value="オーバー" {% if sleeve.sleeve_type == 'オーバー' %}selected{% endif %}>オーバースリーブ</option>
+                        <option value="キャラクター" {% if sleeve.sleeve_type == 'キャラクター' %}selected{% endif %}>キャラクタースリーブ</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row">
+                 <div class="col-md-4 mb-3">
+                    <label class="form-label">メーカー名</label>
+                    <input type="text" name="manufacturer" class="form-control" value="{{ sleeve.manufacturer }}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">封入枚数/パック</label>
+                    <input type="number" name="pack_count" class="form-control" value="{{ sleeve.pack_count }}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">現在の残り枚数</label>
+                    <input type="number" name="remaining_count" class="form-control" value="{{ sleeve.remaining_count }}">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">画像</label>
+                <input type="file" name="sleeve_image" class="form-control" accept="image/*">
+                {% if sleeve.image_filename %}
+                    <div class="form-text">現在の画像: <img src="{{ url_for('uploaded_file', filename=sleeve.image_filename) }}" class="sleeve-img ms-2"></div>
+                {% endif %}
+            </div>
+            <button type="submit" class="btn btn-primary">更新する</button>
+            <a href="{{ url_for('inventory') }}" class="btn btn-secondary">キャンセル</a>
+        </form>
+    </div>
 </div>
 {% endblock %}

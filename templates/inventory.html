@@ -1,90 +1,88 @@
 {% extends 'layout.html' %}
-
 {% block title %}スリーブ在庫管理{% endblock %}
-
 {% block content %}
-<h1>スリーブ在庫管理</h1>
-
-<div class="container">
-    <h2>新しいスリーブを在庫に追加</h2>
-    <form action="{{ url_for('add_sleeve') }}" method="post" enctype="multipart/form-data">
-        <div class="form-group">
-            <label>スリーブ名:</label>
-            <input type="text" name="sleeve_name" required>
-        </div>
-        <div class="form-group">
-            <label>スリーブの種類:</label>
-            <select name="sleeve_type" required>
-                <option value="" disabled selected>選択してください</option>
-                <option value="インナー">インナースリーブ</option>
-                <option value="オーバー">オーバースリーブ</option>
-                <option value="キャラクター">キャラクタースリーブ</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>メーカー名:</label>
-            <input type="text" name="manufacturer">
-        </div>
-        <div class="form-group">
-            <label>封入枚数/パック:</label> <input type="number" name="pack_count" value="0" min="0">
-        </div>
-        <div class="form-group">
-            <label>初期枚数:</label>
-            <input type="number" name="remaining_count" required>
-        </div>
-        <div class="form-group">
-            <label>画像:</label>
-            <input type="file" name="sleeve_image" accept="image/*">
-        </div>
-        <button type="submit">在庫に追加</button>
-    </form>
-</div>
-
-<div class="container">
-    <h2>在庫スリーブ一覧</h2>
-    <div class="sort-links">
-        <strong>並び替え:</strong>
-        <a href="{{ url_for('inventory', sort='desc') }}" {% if sort_order == 'desc' %}class="active"{% endif %}>残り枚数が多い順</a> |
-        <a href="{{ url_for('inventory', sort='asc') }}" {% if sort_order == 'asc' %}class="active"{% endif %}>残り枚数が少ない順</a> |
-        <a href="{{ url_for('inventory') }}">リセット</a>
+<h1 class="mb-4">スリーブ在庫管理</h1>
+<div class="card mb-4">
+    <div class="card-header">新しいスリーブを在庫に追加</div>
+    <div class="card-body">
+        <form action="{{ url_for('add_sleeve') }}" method="post" enctype="multipart/form-data">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">スリーブ名</label>
+                    <input type="text" name="sleeve_name" class="form-control" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">スリーブの種類</label>
+                    <select name="sleeve_type" class="form-select" required>
+                        <option value="" disabled selected>選択してください</option>
+                        <option value="インナー">インナースリーブ</option>
+                        <option value="オーバー">オーバースリーブ</option>
+                        <option value="キャラクター">キャラクタースリーブ</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row">
+                 <div class="col-md-4 mb-3">
+                    <label class="form-label">メーカー名</label>
+                    <input type="text" name="manufacturer" class="form-control">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">封入枚数/パック</label>
+                    <input type="number" name="pack_count" class="form-control" value="0" min="0">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">初期枚数</label>
+                    <input type="number" name="remaining_count" class="form-control" required>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">画像</label>
+                <input type="file" name="sleeve_image" class="form-control" accept="image/*">
+            </div>
+            <button type="submit" class="btn btn-primary">在庫に追加</button>
+        </form>
     </div>
-
-    <table>
-        <thead>
-            <tr>
-                <th>画像</th>
-                <th>スリーブ名</th>
-                <th>種類</th>
-                <th>残り枚数</th>
-                <th>操作</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for sleeve in sleeves %}
-            <tr>
-                <td>
-                    {% if sleeve.image_filename %}
-                        <img src="{{ url_for('uploaded_file', filename=sleeve.image_filename) }}" class="sleeve-img">
-                    {% else %}
-                        No Image
-                    {% endif %}
-                </td>
-                <td>
-                    <a href="{{ url_for('edit_sleeve', id=sleeve.id) }}">{{ sleeve.sleeve_name }}</a>
-                </td>
-                <td>{{ sleeve.sleeve_type }}</td>
-                <td>{{ sleeve.remaining_count }}</td>
-                <td>
-                    <form action="{{ url_for('add_pack', id=sleeve.id) }}" method="post" style="display: inline-block;">
-                        <button type="submit">+1パック ({{ sleeve.pack_count }})</button>
-                    </form>
-                    <form action="{{ url_for('delete_sleeve', id=sleeve.id) }}" method="post" style="display: inline-block; margin-left: 5px;">
-                        <button type="submit" class="delete-btn">削除</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+</div>
+<div class="card">
+    <div class="card-header">在庫スリーブ一覧</div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>画像</th>
+                        <th>スリーブ名</th>
+                        <th>種類</th>
+                        <th>残り枚数</th>
+                        <th class="text-end">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sleeve in sleeves %}
+                    <tr>
+                        <td>
+                            {% if sleeve.image_filename %}
+                                <img src="{{ url_for('uploaded_file', filename=sleeve.image_filename) }}" alt="" class="sleeve-img">
+                            {% else %}
+                                No Image
+                            {% endif %}
+                        </td>
+                        <td><a href="{{ url_for('edit_sleeve', id=sleeve.id) }}">{{ sleeve.sleeve_name }}</a></td>
+                        <td>{{ sleeve.sleeve_type }}</td>
+                        <td>{{ sleeve.remaining_count }}</td>
+                        <td class="text-end">
+                            <form action="{{ url_for('add_pack', id=sleeve.id) }}" method="post" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-success">+1パック ({{ sleeve.pack_count }})</button>
+                            </form>
+                            <form action="{{ url_for('delete_sleeve', id=sleeve.id) }}" method="post" class="d-inline ms-1">
+                                <button type="submit" class="btn btn-sm btn-danger">削除</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 {% endblock %}
