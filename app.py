@@ -24,6 +24,12 @@ if not os.path.exists(app.config['UPLOAD_FOLDER']):
 
 db = SQLAlchemy(app)
 
+# --- カードゲームの種類のリスト ---
+GAME_LIST = [
+    'デュエル・マスターズ', 'ポケモンカードゲーム', '遊戯王', 'クロススターズ', 'ヴァイスシュヴァルツ', 
+    'ガンダムカードゲーム', 'ホロライブカードゲーム', 'ユニオンアリーナ', 'ラブライブカードゲーム'
+]
+
 # --- データベースモデルの定義 ---
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -45,6 +51,7 @@ class Sleeve(db.Model):
 class Deck(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     deck_name = db.Column(db.String(120), nullable=False)
+    game_type = db.Column(db.String(120), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     inner_sleeve_id = db.Column(db.Integer, db.ForeignKey('sleeve.id'))
     inner_sleeve_count = db.Column(db.Integer, default=0)
@@ -90,7 +97,7 @@ def register():
             db.session.add(new_user)
             db.session.commit()
             return redirect(url_for("login"))
-        flash(error)
+        flash(error, 'danger')
     return render_template('register.html')
 
 @app.route('/login', methods=('GET', 'POST'))
@@ -106,7 +113,7 @@ def login():
             session.clear()
             session['user_id'] = user.id
             return redirect(url_for('index'))
-        flash(error)
+        flash(error, 'danger')
     return render_template('login.html')
 
 @app.route('/logout')
@@ -126,23 +133,38 @@ def uploaded_file(filename):
 @app.route('/')
 @login_required
 def index():
-    decks = Deck.query.filter_by(user_id=g.user.id).order_by(Deck.id.desc()).all()
+    game_filter = request.args.get('game_filter')
+    sleeve_filter = request.args.get('sleeve_filter')
+    
+    query = Deck.query.filter_by(user_id=g.user.id)
+    
+    if game_filter:
+        query = query.filter_by(game_type=game_filter)
+    if sleeve_filter:
+        query = query.filter((Deck.inner_sleeve_id == sleeve_filter) | (Deck.over_sleeve_id == sleeve_filter))
+        
+    decks = query.order_by(Deck.id.desc()).all()
+    
     inner_sleeves_list = Sleeve.query.filter_by(user_id=g.user.id, sleeve_type='インナー').all()
     over_sleeves_list = Sleeve.query.filter(Sleeve.user_id==g.user.id, Sleeve.sleeve_type != 'インナー').all()
     all_sleeves = Sleeve.query.filter_by(user_id=g.user.id).all()
-    return render_template('index.html', decks=decks, inner_sleeves_list=inner_sleeves_list, over_sleeves_list=over_sleeves_list, all_sleeves=all_sleeves, filters={})
+    
+    return render_template('index.html', decks=decks, 
+                           inner_sleeves_list=inner_sleeves_list, over_sleeves_list=over_sleeves_list, 
+                           all_sleeves=all_sleeves, game_list=GAME_LIST, 
+                           filters={'game': game_filter, 'sleeve': sleeve_filter})
 
 @app.route('/deck/add', methods=['POST'])
 @login_required
 def add_deck():
     try:
         deck_name = request.form['deck_name']
+        game_type = request.form['game_type']
         inner_sleeve_id = request.form.get('inner_sleeve_id') or None
         inner_sleeve_count = int(request.form.get('inner_sleeve_count', 0))
         over_sleeve_id = request.form.get('over_sleeve_id') or None
         over_sleeve_count = int(request.form.get('over_sleeve_count', 0))
 
-        # ▼▼▼ 在庫数のバリデーションチェックを追加 ▼▼▼
         if inner_sleeve_id and inner_sleeve_count > 0:
             sleeve = Sleeve.query.get(inner_sleeve_id)
             if sleeve.remaining_count < inner_sleeve_count:
@@ -154,9 +176,7 @@ def add_deck():
             if sleeve.remaining_count < over_sleeve_count:
                 flash(f'在庫エラー: 「{sleeve.sleeve_name}」の在庫が足りません。(残り: {sleeve.remaining_count}枚)', 'danger')
                 return redirect(url_for('index'))
-        # ▲▲▲ ここまで追加 ▲▲▲
 
-        # 在庫を減らす処理
         if inner_sleeve_id and inner_sleeve_count > 0:
             sleeve = Sleeve.query.get(inner_sleeve_id)
             sleeve.remaining_count -= inner_sleeve_count
@@ -164,7 +184,9 @@ def add_deck():
             sleeve = Sleeve.query.get(over_sleeve_id)
             sleeve.remaining_count -= over_sleeve_count
 
-        new_deck = Deck(deck_name=deck_name, owner=g.user, inner_sleeve_id=inner_sleeve_id, inner_sleeve_count=inner_sleeve_count, over_sleeve_id=over_sleeve_id, over_sleeve_count=over_sleeve_count)
+        new_deck = Deck(deck_name=deck_name, game_type=game_type, owner=g.user, 
+                        inner_sleeve_id=inner_sleeve_id, inner_sleeve_count=inner_sleeve_count, 
+                        over_sleeve_id=over_sleeve_id, over_sleeve_count=over_sleeve_count)
         db.session.add(new_deck)
         db.session.commit()
         flash('新しいデッキを作成しました。', 'success')
@@ -185,9 +207,10 @@ def delete_deck(id):
                 deck.over_sleeve.remaining_count += deck.over_sleeve_count
             db.session.delete(deck)
             db.session.commit()
+            flash('デッキを削除しました。', 'info')
     except Exception as e:
         db.session.rollback()
-        flash(f"エラーが発生しました: {e}")
+        flash(f"エラーが発生しました: {e}", 'danger')
     return redirect(url_for('index'))
 
 # --- スリーブ在庫管理 ---
@@ -211,11 +234,9 @@ def add_sleeve():
     try:
         pack_count = int(request.form.get('pack_count', 0))
 
-        # ▼▼▼ バリデーションチェックを追加 ▼▼▼
         if pack_count <= 0:
             flash('「封入枚数/パック」には1以上の数値を入力してください。', 'warning')
             return redirect(url_for('inventory'))
-        # ▲▲▲ ここまで追加 ▲▲▲
 
         image_filename = None
         image_file = request.files.get('sleeve_image')
@@ -246,10 +267,15 @@ def edit_sleeve(id):
     sleeve = Sleeve.query.filter_by(id=id, user_id=g.user.id).first_or_404()
     if request.method == 'POST':
         try:
+            pack_count_edit = int(request.form.get('pack_count', 0))
+            if pack_count_edit <= 0:
+                flash('「封入枚数/パック」には1以上の数値を入力してください。', 'warning')
+                return render_template('edit_sleeve.html', sleeve=sleeve)
+            
             sleeve.sleeve_name = request.form['sleeve_name']
             sleeve.sleeve_type = request.form['sleeve_type']
             sleeve.manufacturer = request.form['manufacturer']
-            sleeve.pack_count = int(request.form.get('pack_count', 0))
+            sleeve.pack_count = pack_count_edit
             sleeve.remaining_count = int(request.form['remaining_count'])
             
             image_file = request.files.get('sleeve_image')
@@ -259,28 +285,22 @@ def edit_sleeve(id):
                 sleeve.image_filename = image_filename
             
             db.session.commit()
+            flash('スリーブ情報を更新しました。', 'success')
             return redirect(url_for('inventory'))
         except Exception as e:
             db.session.rollback()
-            flash(f"エラーが発生しました: {e}")
+            flash(f"エラーが発生しました: {e}", 'danger')
     return render_template('edit_sleeve.html', sleeve=sleeve)
-
-# app.py の中の add_pack 関数を置き換える
 
 @app.route('/sleeve/add_pack/<int:id>', methods=['POST'])
 @login_required
 def add_pack(id):
     sleeve = Sleeve.query.filter_by(id=id, user_id=g.user.id).first_or_404()
-    
-    # フォームから追加するパック数を取得（未入力の場合は1とする）
     pack_quantity = int(request.form.get('pack_quantity', 1))
-
     if sleeve and sleeve.pack_count > 0 and pack_quantity > 0:
-        # (封入枚数) × (追加パック数) で増加量を計算
         sleeves_to_add = sleeve.pack_count * pack_quantity
         sleeve.remaining_count += sleeves_to_add
         db.session.commit()
-        
     return redirect(url_for('inventory'))
 
 @app.route('/sleeve/delete/<int:id>', methods=['POST'])
@@ -288,15 +308,14 @@ def add_pack(id):
 def delete_sleeve(id):
     try:
         sleeve = Sleeve.query.filter_by(id=id, user_id=g.user.id).first_or_404()
-        # このスリーブを使用しているデッキの関連付けを解除
         Deck.query.filter_by(inner_sleeve_id=id, user_id=g.user.id).update({'inner_sleeve_id': None})
         Deck.query.filter_by(over_sleeve_id=id, user_id=g.user.id).update({'over_sleeve_id': None})
-        
         db.session.delete(sleeve)
         db.session.commit()
+        flash('スリーブを削除しました。', 'info')
     except Exception as e:
         db.session.rollback()
-        flash(f"エラーが発生しました: {e}")
+        flash(f"エラーが発生しました: {e}", 'danger')
     return redirect(url_for('inventory'))
 
 # --- 秘密の初期化ルート ---

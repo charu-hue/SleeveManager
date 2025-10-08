@@ -56,7 +56,14 @@
 <div class="card">
     <div class="card-header">在庫スリーブ一覧</div>
     <div class="card-body">
+        <div class="d-flex justify-content-end mb-3">
+            <a href="{{ url_for('inventory', sort='desc') }}" class="btn btn-outline-secondary btn-sm me-2 {% if sort_order == 'desc' %}active{% endif %}">残り枚数が多い順</a>
+            <a href="{{ url_for('inventory', sort='asc') }}" class="btn btn-outline-secondary btn-sm me-2 {% if sort_order == 'asc' %}active{% endif %}">残り枚数が少ない順</a>
+            <a href="{{ url_for('inventory') }}" class="btn btn-outline-secondary btn-sm">リセット</a>
+        </div>
         <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+            ...（以降は変更なし）
             <table class="table table-striped table-hover align-middle">
                 <thead>
                     <tr>
