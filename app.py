@@ -240,13 +240,22 @@ def edit_sleeve(id):
             flash(f"エラーが発生しました: {e}")
     return render_template('edit_sleeve.html', sleeve=sleeve)
 
+# app.py の中の add_pack 関数を置き換える
+
 @app.route('/sleeve/add_pack/<int:id>', methods=['POST'])
 @login_required
 def add_pack(id):
     sleeve = Sleeve.query.filter_by(id=id, user_id=g.user.id).first_or_404()
-    if sleeve and sleeve.pack_count > 0:
-        sleeve.remaining_count += sleeve.pack_count
+    
+    # フォームから追加するパック数を取得（未入力の場合は1とする）
+    pack_quantity = int(request.form.get('pack_quantity', 1))
+
+    if sleeve and sleeve.pack_count > 0 and pack_quantity > 0:
+        # (封入枚数) × (追加パック数) で増加量を計算
+        sleeves_to_add = sleeve.pack_count * pack_quantity
+        sleeve.remaining_count += sleeves_to_add
         db.session.commit()
+        
     return redirect(url_for('inventory'))
 
 @app.route('/sleeve/delete/<int:id>', methods=['POST'])

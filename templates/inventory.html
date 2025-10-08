@@ -54,7 +54,7 @@
                         <th>スリーブ名</th>
                         <th>種類</th>
                         <th>残り枚数</th>
-                        <th class="text-end">操作</th>
+                        <th class="text-end" style="min-width: 200px;">操作</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -71,8 +71,9 @@
                         <td>{{ sleeve.sleeve_type }}</td>
                         <td>{{ sleeve.remaining_count }}</td>
                         <td class="text-end">
-                            <form action="{{ url_for('add_pack', id=sleeve.id) }}" method="post" class="d-inline">
-                                <button type="submit" class="btn btn-sm btn-success">+1パック ({{ sleeve.pack_count }})</button>
+                            <form action="{{ url_for('add_pack', id=sleeve.id) }}" method="post" class="d-inline-flex align-items-center">
+                                <input type="number" name="pack_quantity" class="form-control form-control-sm" value="1" min="1" style="width: 70px;">
+                                <button type="submit" class="btn btn-sm btn-success ms-2">パック追加</button>
                             </form>
                             <form action="{{ url_for('delete_sleeve', id=sleeve.id) }}" method="post" class="d-inline ms-1">
                                 <button type="submit" class="btn btn-sm btn-danger">削除</button>
