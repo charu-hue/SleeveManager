@@ -319,13 +319,26 @@ def delete_sleeve(id):
     return redirect(url_for('inventory'))
 
 # --- 秘密の初期化ルート ---
-@app.route('/create-database-for-my-app-12345xyz')
-def create_db_route():
+# app.py の一番下の「秘密の初期化ルート」を、以下の2つに置き換える
+
+# ▼▼▼ 【ステップ1】データベースのテーブルを"削除"する秘密のルート ▼▼▼
+@app.route('/drop-all-tables-for-my-app-12345xyz')
+def drop_db_route():
     try:
         with app.app_context():
             db.drop_all()
-            db.create_all()
-        return "データベースの初期化が完了しました。"
+        return "ステップ1：テーブルの削除が完了しました。次に、作成用のURLにアクセスしてください。"
     except Exception as e:
-        app.logger.error(f"DB init failed: {e}")
+        app.logger.error(f"DB drop failed: {e}")
+        return f"エラーが発生しました: {e}"
+
+# ▼▼▼ 【ステップ2】データベースのテーブルを"作成"する秘密のルート ▼▼▼
+@app.route('/create-all-tables-for-my-app-12345xyz')
+def create_db_route():
+    try:
+        with app.app_context():
+            db.create_all()
+        return "ステップ2：テーブルの作成が完了しました。データベースの初期化は成功です！"
+    except Exception as e:
+        app.logger.error(f"DB create failed: {e}")
         return f"エラーが発生しました: {e}"
