@@ -142,19 +142,35 @@ def add_deck():
         over_sleeve_id = request.form.get('over_sleeve_id') or None
         over_sleeve_count = int(request.form.get('over_sleeve_count', 0))
 
-        if inner_sleeve_id:
+        # ▼▼▼ 在庫数のバリデーションチェックを追加 ▼▼▼
+        if inner_sleeve_id and inner_sleeve_count > 0:
+            sleeve = Sleeve.query.get(inner_sleeve_id)
+            if sleeve.remaining_count < inner_sleeve_count:
+                flash(f'在庫エラー: 「{sleeve.sleeve_name}」の在庫が足りません。(残り: {sleeve.remaining_count}枚)', 'danger')
+                return redirect(url_for('index'))
+        
+        if over_sleeve_id and over_sleeve_count > 0:
+            sleeve = Sleeve.query.get(over_sleeve_id)
+            if sleeve.remaining_count < over_sleeve_count:
+                flash(f'在庫エラー: 「{sleeve.sleeve_name}」の在庫が足りません。(残り: {sleeve.remaining_count}枚)', 'danger')
+                return redirect(url_for('index'))
+        # ▲▲▲ ここまで追加 ▲▲▲
+
+        # 在庫を減らす処理
+        if inner_sleeve_id and inner_sleeve_count > 0:
             sleeve = Sleeve.query.get(inner_sleeve_id)
             sleeve.remaining_count -= inner_sleeve_count
-        if over_sleeve_id:
+        if over_sleeve_id and over_sleeve_count > 0:
             sleeve = Sleeve.query.get(over_sleeve_id)
             sleeve.remaining_count -= over_sleeve_count
 
         new_deck = Deck(deck_name=deck_name, owner=g.user, inner_sleeve_id=inner_sleeve_id, inner_sleeve_count=inner_sleeve_count, over_sleeve_id=over_sleeve_id, over_sleeve_count=over_sleeve_count)
         db.session.add(new_deck)
         db.session.commit()
+        flash('新しいデッキを作成しました。', 'success')
     except Exception as e:
         db.session.rollback()
-        flash(f"エラーが発生しました: {e}")
+        flash(f"エラーが発生しました: {e}", 'danger')
     return redirect(url_for('index'))
 
 @app.route('/deck/delete/<int:id>', methods=['POST'])
@@ -193,6 +209,14 @@ def inventory():
 @login_required
 def add_sleeve():
     try:
+        pack_count = int(request.form.get('pack_count', 0))
+
+        # ▼▼▼ バリデーションチェックを追加 ▼▼▼
+        if pack_count <= 0:
+            flash('「封入枚数/パック」には1以上の数値を入力してください。', 'warning')
+            return redirect(url_for('inventory'))
+        # ▲▲▲ ここまで追加 ▲▲▲
+
         image_filename = None
         image_file = request.files.get('sleeve_image')
         if image_file and allowed_file(image_file.filename):
@@ -203,16 +227,17 @@ def add_sleeve():
             sleeve_name=request.form['sleeve_name'],
             sleeve_type=request.form['sleeve_type'],
             manufacturer=request.form['manufacturer'],
-            pack_count=int(request.form.get('pack_count', 0)),
+            pack_count=pack_count,
             remaining_count=int(request.form['remaining_count']),
             image_filename=image_filename,
             owner=g.user
         )
         db.session.add(new_sleeve)
         db.session.commit()
+        flash('新しいスリーブを在庫に追加しました。', 'success')
     except Exception as e:
         db.session.rollback()
-        flash(f"エラーが発生しました: {e}")
+        flash(f"エラーが発生しました: {e}", 'danger')
     return redirect(url_for('inventory'))
 
 @app.route('/sleeve/edit/<int:id>', methods=('GET', 'POST'))
